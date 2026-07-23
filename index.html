@@ -852,7 +852,7 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
 const SUPABASE_URL = 'https://zhmsfslyjuqqdpjqgjre.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobXNmc2x5anVxcWRwanFnanJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzczMDYsImV4cCI6MjEwMDQxMzMwNn0.cqJxQSvaBQ8bSPqNNeGZeGDkCVYIA_KHMe9lqOXHF-E';
 
-async function sbGet(table, filters = '') {
+async async function sbGet(table, filters = '') {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
     headers: {
       'apikey': SUPABASE_KEY,
@@ -863,7 +863,7 @@ async function sbGet(table, filters = '') {
   return res.json();
 }
 
-async function sbPost(table, data) {
+async async function sbPost(table, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
@@ -877,7 +877,7 @@ async function sbPost(table, data) {
   return res.json();
 }
 
-async function sbPatch(table, id, data) {
+async async function sbPatch(table, id, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: {
@@ -891,7 +891,7 @@ async function sbPatch(table, id, data) {
   return res.json();
 }
 
-async function sbPatchKey(table, key, value, data) {
+async async function sbPatchKey(table, key, value, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?key=eq.${key}`, {
     method: 'PATCH',
     headers: {
@@ -905,7 +905,7 @@ async function sbPatchKey(table, key, value, data) {
   return res.json();
 }
 
-async function sbUpsert(table, data) {
+async async function sbUpsert(table, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
@@ -951,14 +951,14 @@ const SERVICIOS_DEFAULT = [
 let serviciosAdmin = JSON.parse(localStorage.getItem('lomva_servicios') || 'null') || SERVICIOS_DEFAULT;
 let configAdmin = JSON.parse(localStorage.getItem('lomva_config') || '{"topePlazas":32,"topeLavadero":8}');
 
-function guardarServicios() {
+async function guardarServicios() {
   localStorage.setItem('lomva_servicios', JSON.stringify(serviciosAdmin));
   renderServiciosAdmin();
   renderServiciosPublico();
   toast('✅ Cambios guardados', 'verde');
 }
 
-function guardarConfig() {
+async function guardarConfig() {
   configAdmin.topePlazas = parseInt(document.getElementById('conf-tope').value) || 32;
   configAdmin.topeLavadero = parseInt(document.getElementById('conf-tope-lav').value) || 8;
   localStorage.setItem('lomva_config', JSON.stringify(configAdmin));
@@ -1013,7 +1013,7 @@ function renderServiciosAdmin() {
   `).join('');
 }
 
-async function guardarServicioIdx(i) {
+async async function guardarServicioIdx(i) {
   const s = serviciosAdmin[i];
   await sbUpsert('servicios', [{
     id: s.id, icon: s.icon, nombre: s.nombre, descripcion: s.desc,
@@ -1022,7 +1022,7 @@ async function guardarServicioIdx(i) {
   guardarServicios();
 }
 
-async function toggleServicio(i) {
+async async function toggleServicio(i) {
   serviciosAdmin[i].activo = !serviciosAdmin[i].activo;
   await sbUpsert('servicios', [{
     id: serviciosAdmin[i].id, icon: serviciosAdmin[i].icon,
@@ -1130,7 +1130,7 @@ function selServicio(el) {
 }
 
 // ===== IR AL FORMULARIO =====
-function irFormulario() {
+async function irFormulario() {
   if (!srvSel) return;
   document.getElementById('form-titulo').textContent = srvSel.nombre;
   document.getElementById('form-sub').textContent = srvSel.id === 'lavadero' ? 'Elegí fecha y turno para tu lavado' : 'Completá tus datos para la reserva';
@@ -1166,7 +1166,7 @@ function togglePago() {
 }
 
 // ===== PAGO =====
-function procesarPago() {
+async function procesarPago() {
   const nombre = document.getElementById('f-nombre').value.trim();
   const cel = document.getElementById('f-cel').value.trim();
   const patente = document.getElementById('f-patente').value.trim().toUpperCase();
@@ -1210,7 +1210,7 @@ function mostrarConfirmacion(r) {
 }
 
 // ===== MIS RESERVAS =====
-async function buscarReservas() {
+async async async function buscarReservas() {
   const cel = document.getElementById('buscar-cel').value.trim();
   const lista = document.getElementById('mis-reservas-lista');
   lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--texto2);">Buscando...</div>';
@@ -1243,7 +1243,7 @@ async function buscarReservas() {
 }
 
 // ===== ADMIN =====
-function loginAdmin() {
+async function loginAdmin() {
   const user = document.getElementById('admin-user').value;
   const pass = document.getElementById('admin-pass').value;
   if (user === 'admin' && pass === 'lomva2024') {
@@ -1255,7 +1255,7 @@ function loginAdmin() {
   }
 }
 
-function cerrarAdmin() {
+async function cerrarAdmin() {
   document.getElementById('admin-login').style.display = 'block';
   document.getElementById('admin-panel').style.display = 'none';
   document.getElementById('admin-user').value = '';
