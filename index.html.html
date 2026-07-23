@@ -507,7 +507,7 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
     <div class="section-titulo">RESERVAR SERVICIO</div>
     <div class="srv-grid">
 
-      <div class="srv-card" data-srv="noche" data-precio="22000" data-nombre="Estacionamiento nocturno" onclick="selServicio(this)">
+      <div class="srv-card" data-srv="noche" data-precio="22000" data-nombre="Estacionamiento nocturno">
         <div class="srv-badge activo">Disponible</div>
         <div class="srv-check">✓</div>
         <div class="srv-icon">🅿️</div>
@@ -516,7 +516,7 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
         <div class="srv-precio">$22.000 <span>/ noche</span></div>
       </div>
 
-      <div class="srv-card" data-srv="lavadero" data-precio="55000" data-nombre="Lavadero de camión" onclick="selServicio(this)">
+      <div class="srv-card" data-srv="lavadero" data-precio="55000" data-nombre="Lavadero de camión">
         <div class="srv-badge activo">Disponible</div>
         <div class="srv-check">✓</div>
         <div class="srv-icon">🚛</div>
@@ -551,7 +551,7 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
 
     </div>
 
-    <button class="btn-principal" id="btn-siguiente" onclick="irFormulario()" disabled>
+    <button class="btn-principal" id="btn-siguiente" disabled>
       Continuar con la reserva →
     </button>
 
@@ -1065,7 +1065,7 @@ function renderServiciosPublico() {
   grid.innerHTML = serviciosAdmin.map(s => {
     if (s.activo) {
       return `
-        <div class="srv-card" data-srv="${s.id}" data-precio="${s.precio}" data-nombre="${s.nombre}" onclick="selServicio(this)">
+        <div class="srv-card" data-srv="${s.id}" data-precio="${s.precio}" data-nombre="${s.nombre}">
           <div class="srv-badge activo">Disponible</div>
           <div class="srv-check">✓</div>
           <div class="srv-icon">${s.icon}</div>
@@ -1084,10 +1084,25 @@ function renderServiciosPublico() {
         </div>`;
     }
   }).join('');
+  // Re-attachear event listeners
+  grid.querySelectorAll('.srv-card:not(.disabled)').forEach(card => {
+    card.addEventListener('click', () => selServicio(card));
+  });
 }
 
 // Inicializar servicios al cargar
 document.addEventListener('DOMContentLoaded', () => {
+  // Event delegation para cards de servicios
+  const grid = document.getElementById('srv-grid');
+  if (grid) {
+    grid.addEventListener('click', (e) => {
+      const card = e.target.closest('.srv-card');
+      if (card && !card.classList.contains('disabled')) selServicio(card);
+    });
+  }
+  // Botón siguiente
+  const btnSig = document.getElementById('btn-siguiente');
+  if (btnSig) btnSig.addEventListener('click', irFormulario);
   cargarServicios();
 });
 
