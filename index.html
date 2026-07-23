@@ -852,7 +852,7 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
 const SUPABASE_URL = 'https://zhmsfslyjuqqdpjqgjre.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobXNmc2x5anVxcWRwanFnanJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzczMDYsImV4cCI6MjEwMDQxMzMwNn0.cqJxQSvaBQ8bSPqNNeGZeGDkCVYIA_KHMe9lqOXHF-E';
 
-async async function sbGet(table, filters = '') {
+async function sbGet(table, filters = '') {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
     headers: {
       'apikey': SUPABASE_KEY,
@@ -863,7 +863,7 @@ async async function sbGet(table, filters = '') {
   return res.json();
 }
 
-async async function sbPost(table, data) {
+async function sbPost(table, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
@@ -877,7 +877,7 @@ async async function sbPost(table, data) {
   return res.json();
 }
 
-async async function sbPatch(table, id, data) {
+async function sbPatch(table, id, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: {
@@ -891,7 +891,7 @@ async async function sbPatch(table, id, data) {
   return res.json();
 }
 
-async async function sbPatchKey(table, key, value, data) {
+async function sbPatchKey(table, key, value, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?key=eq.${key}`, {
     method: 'PATCH',
     headers: {
@@ -905,7 +905,7 @@ async async function sbPatchKey(table, key, value, data) {
   return res.json();
 }
 
-async async function sbUpsert(table, data) {
+async function sbUpsert(table, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
@@ -1013,7 +1013,7 @@ function renderServiciosAdmin() {
   `).join('');
 }
 
-async async function guardarServicioIdx(i) {
+async function guardarServicioIdx(i) {
   const s = serviciosAdmin[i];
   await sbUpsert('servicios', [{
     id: s.id, icon: s.icon, nombre: s.nombre, descripcion: s.desc,
@@ -1022,7 +1022,7 @@ async async function guardarServicioIdx(i) {
   guardarServicios();
 }
 
-async async function toggleServicio(i) {
+async function toggleServicio(i) {
   serviciosAdmin[i].activo = !serviciosAdmin[i].activo;
   await sbUpsert('servicios', [{
     id: serviciosAdmin[i].id, icon: serviciosAdmin[i].icon,
@@ -1210,7 +1210,7 @@ function mostrarConfirmacion(r) {
 }
 
 // ===== MIS RESERVAS =====
-async async async function buscarReservas() {
+async function buscarReservas() {
   const cel = document.getElementById('buscar-cel').value.trim();
   const lista = document.getElementById('mis-reservas-lista');
   lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--texto2);">Buscando...</div>';
