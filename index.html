@@ -1142,17 +1142,17 @@ function renderServiciosPublico() {
 
 // Inicializar servicios al cargar
 document.addEventListener('DOMContentLoaded', () => {
-  // Event delegation para cards de servicios
-  const grid = document.getElementById('srv-grid');
-  if (grid) {
-    grid.addEventListener('click', (e) => {
-      const card = e.target.closest('.srv-card');
-      if (card && !card.classList.contains('disabled')) selServicio(card);
-    });
-  }
-  // Botón siguiente
-  const btnSig = document.getElementById('btn-siguiente');
-  if (btnSig) btnSig.addEventListener('click', irFormulario);
+  // Event delegation persistente — funciona aunque se regenere el innerHTML
+  document.addEventListener('click', (e) => {
+    const card = e.target.closest('.srv-card');
+    if (card && !card.classList.contains('disabled')) {
+      selServicio(card);
+    }
+    // Botón siguiente
+    if (e.target.id === 'btn-siguiente' || e.target.closest('#btn-siguiente')) {
+      irFormulario();
+    }
+  });
   cargarServicios();
 });
 
