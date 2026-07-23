@@ -919,6 +919,56 @@ async function sbUpsert(table, data) {
   return res.json();
 }
 
+
+async function cargarServicios() {
+  try {
+    const data = await sbGet('servicios', 'order=orden.asc');
+    if (Array.isArray(data) && data.length > 0) {
+      serviciosAdmin = data.map(s => ({
+        id: s.id, icon: s.icon, nombre: s.nombre, desc: s.descripcion,
+        precio: s.precio, unidad: s.unidad, activo: s.activo, fijo: s.fijo
+      }));
+    } else {
+      // Fallback con datos por defecto si Supabase está vacío
+      serviciosAdmin = [
+        { id:'noche', icon:'🅿️', nombre:'Estacionamiento nocturno', desc:'Estacionamiento seguro con código de acceso personal. Válido 24hs desde el check-in.', precio:22000, unidad:'/ noche', activo:true, fijo:true },
+        { id:'lavadero', icon:'🚛', nombre:'Lavadero de camión', desc:'Lavado completo camión + semirremolque. Elegí un turno al reservar.', precio:55000, unidad:'/ lavado', activo:true, fijo:true },
+        { id:'gomeria', icon:'🔧', nombre:'Gomería', desc:'Servicio de gomas y ruedas. Turno programado.', precio:0, unidad:'/ turno', activo:false, fijo:false },
+        { id:'taller', icon:'❄️', nombre:'Taller refrigeración', desc:'Service Carrier y Thermo King con turno programado.', precio:0, unidad:'/ turno', activo:false, fijo:false },
+        { id:'trifasico', icon:'⚡', nombre:'Enchufe trifásico', desc:'Para unidades refrigeradas Carrier / Thermo King.', precio:11000, unidad:'/ noche', activo:false, fijo:false },
+      ];
+    }
+    renderServiciosPublico();
+    renderServiciosAdmin();
+  } catch(e) {
+    console.error('Error cargando servicios:', e);
+    // Usar datos por defecto si hay error
+    serviciosAdmin = [
+      { id:'noche', icon:'🅿️', nombre:'Estacionamiento nocturno', desc:'Estacionamiento seguro con código de acceso personal. Válido 24hs desde el check-in.', precio:22000, unidad:'/ noche', activo:true, fijo:true },
+      { id:'lavadero', icon:'🚛', nombre:'Lavadero de camión', desc:'Lavado completo camión + semirremolque. Elegí un turno al reservar.', precio:55000, unidad:'/ lavado', activo:true, fijo:true },
+      { id:'gomeria', icon:'🔧', nombre:'Gomería', desc:'Servicio de gomas y ruedas. Turno programado.', precio:0, unidad:'/ turno', activo:false, fijo:false },
+      { id:'taller', icon:'❄️', nombre:'Taller refrigeración', desc:'Service Carrier y Thermo King con turno programado.', precio:0, unidad:'/ turno', activo:false, fijo:false },
+    ];
+    renderServiciosPublico();
+  }
+}
+
+async function cargarConfig() {
+  try {
+    const data = await sbGet('config', '');
+    if (Array.isArray(data)) {
+      data.forEach(c => {
+        if (c.key === 'tope_plazas') configAdmin.topePlazas = parseInt(c.value);
+        if (c.key === 'tope_lavadero') configAdmin.topeLavadero = parseInt(c.value);
+      });
+    }
+    const tp = document.getElementById('conf-tope');
+    const tl = document.getElementById('conf-tope-lav');
+    if (tp) tp.value = configAdmin.topePlazas;
+    if (tl) tl.value = configAdmin.topeLavadero;
+  } catch(e) { console.error('Error cargando config:', e); }
+}
+
 // ===== SLIDER =====
 let slideActual = 0;
 const totalSlides = 3;
