@@ -1177,7 +1177,7 @@ async function procesarPago() {
   btn.disabled = true;
   btn.innerHTML = '<span>Procesando pago...</span>';
 
-  setTimeout(() => {
+  setTimeout(async () => {
     const reserva = {
       id: 'RES-' + Date.now(),
       nombre, cel, patente, fecha,
