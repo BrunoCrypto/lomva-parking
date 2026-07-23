@@ -847,6 +847,78 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
 
 <script>
 
+
+// ===== SUPABASE CONFIG =====
+const SUPABASE_URL = 'https://zhmsfslyjuqqdpjqgjre.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobXNmc2x5anVxcWRwanFnanJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzczMDYsImV4cCI6MjEwMDQxMzMwNn0.cqJxQSvaBQ8bSPqNNeGZeGDkCVYIA_KHMe9lqOXHF-E';
+
+async function sbGet(table, filters = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    }
+  });
+  return res.json();
+}
+
+async function sbPost(table, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+async function sbPatch(table, id, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+async function sbPatchKey(table, key, value, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?key=eq.${key}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+async function sbUpsert(table, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
 // ===== SLIDER =====
 let slideActual = 0;
 const totalSlides = 3;
@@ -941,12 +1013,23 @@ function renderServiciosAdmin() {
   `).join('');
 }
 
-function guardarServicioIdx(i) {
+async function guardarServicioIdx(i) {
+  const s = serviciosAdmin[i];
+  await sbUpsert('servicios', [{
+    id: s.id, icon: s.icon, nombre: s.nombre, descripcion: s.desc,
+    precio: s.precio, unidad: s.unidad, activo: s.activo, fijo: s.fijo, orden: i+1
+  }]);
   guardarServicios();
 }
 
-function toggleServicio(i) {
+async function toggleServicio(i) {
   serviciosAdmin[i].activo = !serviciosAdmin[i].activo;
+  await sbUpsert('servicios', [{
+    id: serviciosAdmin[i].id, icon: serviciosAdmin[i].icon,
+    nombre: serviciosAdmin[i].nombre, descripcion: serviciosAdmin[i].desc,
+    precio: serviciosAdmin[i].precio, unidad: serviciosAdmin[i].unidad,
+    activo: serviciosAdmin[i].activo, fijo: serviciosAdmin[i].fijo, orden: i+1
+  }]);
   guardarServicios();
 }
 
@@ -961,14 +1044,16 @@ function mostrarNuevoSrv() {
   document.getElementById('nuevo-srv-form').scrollIntoView({ behavior:'smooth' });
 }
 
-function agregarServicio() {
+async function agregarServicio() {
   const icon = document.getElementById('new-icon').value.trim() || '🔧';
   const nombre = document.getElementById('new-nombre').value.trim();
   const desc = document.getElementById('new-desc').value.trim();
   const precio = parseInt(document.getElementById('new-precio').value) || 0;
   const unidad = document.getElementById('new-unidad').value.trim() || '/ turno';
   if (!nombre) { toast('Ingresá el nombre del servicio', 'rojo'); return; }
-  serviciosAdmin.push({ id: 'srv-' + Date.now(), icon, nombre, desc, precio, unidad, activo:true, fijo:false });
+  const newSrv = { id: 'srv-' + Date.now(), icon, nombre, desc, precio, unidad, activo:true, fijo:false };
+  await sbUpsert('servicios', [{ id: newSrv.id, icon, nombre, descripcion: desc, precio, unidad, activo:true, fijo:false, orden: serviciosAdmin.length+1 }]);
+  serviciosAdmin.push(newSrv);
   document.getElementById('nuevo-srv-form').style.display = 'none';
   ['new-icon','new-nombre','new-desc','new-precio','new-unidad'].forEach(id => document.getElementById(id).value = '');
   guardarServicios();
@@ -1003,16 +1088,12 @@ function renderServiciosPublico() {
 
 // Inicializar servicios al cargar
 document.addEventListener('DOMContentLoaded', () => {
-  renderServiciosPublico();
-  if (document.getElementById('conf-tope')) {
-    document.getElementById('conf-tope').value = configAdmin.topePlazas;
-    document.getElementById('conf-tope-lav').value = configAdmin.topeLavadero;
-  }
+  cargarServicios();
 });
 
 // ===== ESTADO =====
 let srvSel = null;
-let reservas = JSON.parse(localStorage.getItem('lomva_v2') || '[]');
+let reservas = [];
 
 // ===== NAVEGACIÓN =====
 function irVista(nombre) {
@@ -1092,8 +1173,13 @@ function procesarPago() {
       fechaCheckin: null,
       fechaVencimiento: null,
     };
+    // Guardar en Supabase
+    await sbPost('reservas', {
+      id: reserva.id, nombre, cel, patente, fecha,
+      servicio_id: srvSel.id, servicio_nombre: srvSel.nombre, servicio_precio: srvSel.precio,
+      codigo: reserva.codigo, estado: 'pagado', fecha_pago: reserva.fechaPago
+    });
     reservas.push(reserva);
-    localStorage.setItem('lomva_v2', JSON.stringify(reservas));
     mostrarConfirmacion(reserva);
     btn.disabled = false;
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-weight="700" fill="#009ee3">MP</text></svg> Pagar con Mercado Pago';
@@ -1109,18 +1195,19 @@ function mostrarConfirmacion(r) {
 }
 
 // ===== MIS RESERVAS =====
-function buscarReservas() {
-  const cel = document.getElementById('buscar-cel').value.trim().replace(/\s/g,'');
+async function buscarReservas() {
+  const cel = document.getElementById('buscar-cel').value.trim();
   const lista = document.getElementById('mis-reservas-lista');
-  const mis = reservas.filter(r => r.cel.replace(/\s/g,'') === cel);
+  lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--texto2);">Buscando...</div>';
+  const mis = await sbGet('reservas', `cel=eq.${encodeURIComponent(cel)}&order=created_at.desc`);
   if (!mis.length) {
     lista.innerHTML = '<div style="text-align:center;padding:32px;color:var(--texto2);font-size:13px;">No encontramos reservas para este número.</div>';
     return;
   }
-  lista.innerHTML = mis.reverse().map(r => `
+  lista.innerHTML = mis.map(r => `
     <div class="reserva-item">
       <div class="reserva-item-header">
-        <div class="reserva-item-nombre">${r.servicio.nombre}</div>
+        <div class="reserva-item-nombre">${r.servicio_nombre}</div>
         <span class="badge ${r.estado==='activo'?'activo':r.estado==='vencido'?'vencido':'pendiente'}">
           ${r.estado==='pagado'?'Esperando check-in':r.estado==='activo'?'Activo':r.estado}
         </span>
@@ -1228,16 +1315,7 @@ function toast(msg, tipo) {
   setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-// ===== DEMO DATA =====
-if (!reservas.length) {
-  const hoy = new Date().toISOString().split('T')[0];
-  reservas = [
-    { id:'RES-001', nombre:'Carlos Méndez', cel:'341 555-1234', patente:'AB 123 CD', fecha:hoy, servicio:{id:'noche',nombre:'Estacionamiento nocturno',precio:22000}, codigo:'847291', estado:'pagado', fechaPago:new Date().toISOString(), fechaCheckin:null, fechaVencimiento:null },
-    { id:'RES-002', nombre:'Roberto Silva', cel:'341 555-5678', patente:'XY 456 ZW', fecha:hoy, servicio:{id:'lavadero',nombre:'Lavadero de camión',precio:55000}, codigo:'392847', estado:'activo', fechaPago:new Date(Date.now()-3600000).toISOString(), fechaCheckin:new Date(Date.now()-1800000).toISOString(), fechaVencimiento:new Date(Date.now()+82800000).toISOString() },
-    { id:'RES-003', nombre:'Diego Fernández', cel:'341 555-9012', patente:'MN 789 OP', fecha:hoy, servicio:{id:'noche',nombre:'Estacionamiento nocturno',precio:22000}, codigo:'571934', estado:'pagado', fechaPago:new Date(Date.now()-7200000).toISOString(), fechaCheckin:null, fechaVencimiento:null },
-  ];
-  localStorage.setItem('lomva_v2', JSON.stringify(reservas));
-}
+// Datos cargados desde Supabase
 </script>
 </body>
 </html>
