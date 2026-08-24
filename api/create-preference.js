@@ -23,8 +23,8 @@ export default async function handler(req, res) {
       ],
       payer: {
         name: nombre || '',
-        email: email || 'cliente@lomvaparking.com.ar',
-        phone: { number: celular || '' }
+        email: email || 'test@test.com',
+        phone: {}
       },
       back_urls: {
         success: `https://lomvaparking.com.ar?pago=exitoso&reserva_id=${reserva_id}`,
