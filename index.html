@@ -1070,7 +1070,8 @@ async function guardarServicioIdx(i) {
     id: s.id, icon: s.icon, nombre: s.nombre, descripcion: s.desc,
     precio: s.precio, unidad: s.unidad, activo: s.activo, fijo: s.fijo, orden: i+1
   }]);
-  guardarServicios();
+  await cargarServicios();
+  toast('✅ Servicio actualizado', 'verde');
 }
 
 async function toggleServicio(i) {
@@ -1081,7 +1082,8 @@ async function toggleServicio(i) {
     precio: serviciosAdmin[i].precio, unidad: serviciosAdmin[i].unidad,
     activo: serviciosAdmin[i].activo, fijo: serviciosAdmin[i].fijo, orden: i+1
   }]);
-  guardarServicios();
+  await cargarServicios();
+  toast('✅ Servicio actualizado', 'verde');
 }
 
 function eliminarServicio(i) {
