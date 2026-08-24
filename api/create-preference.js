@@ -27,9 +27,9 @@ export default async function handler(req, res) {
         phone: {}
       },
       back_urls: {
-        success: `https://lomvaparking.com.ar?pago=exitoso&reserva_id=${reserva_id}`,
-        failure: `https://lomvaparking.com.ar?pago=fallido&reserva_id=${reserva_id}`,
-        pending: `https://lomvaparking.com.ar?pago=pendiente&reserva_id=${reserva_id}`,
+        success: `https://lomva-parking.vercel.app?pago=exitoso&reserva_id=${reserva_id}`,
+        failure: `https://lomva-parking.vercel.app?pago=fallido&reserva_id=${reserva_id}`,
+        pending: `https://lomva-parking.vercel.app?pago=pendiente&reserva_id=${reserva_id}`,
       },
       auto_return: 'approved',
       external_reference: reserva_id,
