@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       ],
       payer: {
         name: nombre || '',
-        email: email || 'test@test.com',
+        email: email || 'blombardi@lomva.com.ar',
         phone: {}
       },
       back_urls: {
