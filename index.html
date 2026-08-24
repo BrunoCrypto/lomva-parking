@@ -1143,17 +1143,48 @@ function renderServiciosPublico() {
 
 // Inicializar servicios al cargar
 document.addEventListener('DOMContentLoaded', () => {
-  // Event delegation persistente — funciona aunque se regenere el innerHTML
+  // Event delegation persistente
   document.addEventListener('click', (e) => {
     const card = e.target.closest('.srv-card');
     if (card && !card.classList.contains('disabled')) {
       selServicio(card);
     }
-    // Botón siguiente
     if (e.target.id === 'btn-siguiente' || e.target.closest('#btn-siguiente')) {
       irFormulario();
     }
   });
+
+  // Verificar si volvemos de Mercado Pago
+  const params = new URLSearchParams(window.location.search);
+  const pagoEstado = params.get('pago');
+  const reservaId = params.get('reserva_id');
+
+  if (pagoEstado === 'exitoso' && reservaId) {
+    // Actualizar estado en Supabase
+    sbPatch('reservas', reservaId, { estado: 'pagado', fecha_pago: new Date().toISOString() }).then(() => {
+      // Mostrar confirmación
+      const pendiente = sessionStorage.getItem('lomva_pending_reserva');
+      if (pendiente) {
+        const reserva = JSON.parse(pendiente);
+        reserva.servicio = reserva.servicio || srvSel;
+        srvSel = reserva.servicio;
+        mostrarConfirmacion(reserva);
+        sessionStorage.removeItem('lomva_pending_reserva');
+      } else {
+        irVista('home');
+        toast('✅ Pago confirmado. Mostrá tu código al encargado.', 'verde');
+      }
+    });
+    // Limpiar URL
+    window.history.replaceState({}, '', '/');
+  } else if (pagoEstado === 'fallido') {
+    toast('El pago no se pudo procesar. Intentá de nuevo.', 'rojo');
+    window.history.replaceState({}, '', '/');
+  } else if (pagoEstado === 'pendiente') {
+    toast('Tu pago está pendiente de confirmación.', '');
+    window.history.replaceState({}, '', '/');
+  }
+
   cargarServicios();
 });
 
@@ -1226,162 +1257,53 @@ async function procesarPago() {
 
   const btn = document.getElementById('btn-pagar');
   btn.disabled = true;
-  btn.innerHTML = '<span>Procesando pago...</span>';
+  btn.innerHTML = '<span>Generando pago...</span>';
 
-  setTimeout(async () => {
-    const reserva = {
-      id: 'RES-' + Date.now(),
-      nombre, cel, patente, fecha,
-      servicio: { ...srvSel },
-      codigo: Math.floor(100000 + Math.random() * 900000).toString(),
-      estado: 'pagado',
-      fechaPago: new Date().toISOString(),
-      fechaCheckin: null,
-      fechaVencimiento: null,
-    };
-    // Guardar en Supabase
+  try {
+    // 1. Guardar reserva en Supabase con estado pendiente
+    const reservaId = 'RES-' + Date.now();
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
     await sbPost('reservas', {
-      id: reserva.id, nombre, cel, patente, fecha,
+      id: reservaId, nombre, cel, patente, fecha,
       servicio_id: srvSel.id, servicio_nombre: srvSel.nombre, servicio_precio: srvSel.precio,
-      codigo: reserva.codigo, estado: 'pagado', fecha_pago: reserva.fechaPago
+      codigo: codigo, estado: 'pendiente_pago', fecha_pago: new Date().toISOString()
     });
-    reservas.push(reserva);
-    mostrarConfirmacion(reserva);
+
+    // 2. Crear preferencia en Mercado Pago
+    const mpRes = await fetch('/api/create-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        titulo: srvSel.nombre + ' — Lomva Parking',
+        precio: srvSel.precio,
+        reserva_id: reservaId,
+        nombre: nombre,
+        email: 'cliente@lomvaparking.com.ar',
+        celular: cel
+      })
+    });
+
+    const mpData = await mpRes.json();
+
+    if (mpData.init_point) {
+      // 3. Guardar datos en sessionStorage para mostrar después
+      sessionStorage.setItem('lomva_pending', JSON.stringify({
+        id: reservaId, nombre, cel, patente, fecha,
+        servicio: { ...srvSel }, codigo, estado: 'pagado'
+      }));
+      // 4. Redirigir a Mercado Pago
+      window.location.href = mpData.init_point;
+    } else {
+      throw new Error('No se pudo generar el link de pago');
+    }
+
+  } catch (error) {
+    console.error('Error MP:', error);
+    toast('Error al procesar el pago. Intentá de nuevo.', 'rojo');
     btn.disabled = false;
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-weight="700" fill="#009ee3">MP</text></svg> Pagar con Mercado Pago';
-  }, 2000);
-}
-
-function mostrarConfirmacion(r) {
-  document.getElementById('codigo-display').textContent = r.codigo;
-  document.getElementById('confirm-cel').textContent = r.cel;
-  ['porton','banos','salon'].forEach(t => document.getElementById('tag-'+t).classList.remove('activo'));
-  irVista('confirmacion');
-  toast('✅ Pago confirmado correctamente', 'verde');
-}
-
-// ===== MIS RESERVAS =====
-async function buscarReservas() {
-  const cel = document.getElementById('buscar-cel').value.trim();
-  const lista = document.getElementById('mis-reservas-lista');
-  lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--texto2);">Buscando...</div>';
-  const mis = await sbGet('reservas', `cel=eq.${encodeURIComponent(cel)}&order=created_at.desc`);
-  if (!mis.length) {
-    lista.innerHTML = '<div style="text-align:center;padding:32px;color:var(--texto2);font-size:13px;">No encontramos reservas para este número.</div>';
-    return;
-  }
-  lista.innerHTML = mis.map(r => `
-    <div class="reserva-item">
-      <div class="reserva-item-header">
-        <div class="reserva-item-nombre">${r.servicio_nombre}</div>
-        <span class="badge ${r.estado==='activo'?'activo':r.estado==='vencido'?'vencido':'pendiente'}">
-          ${r.estado==='pagado'?'Esperando check-in':r.estado==='activo'?'Activo':r.estado}
-        </span>
-      </div>
-      <div class="reserva-item-datos">
-        <span>📅 ${new Date(r.fecha+'T00:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}</span>
-        <span>🚛 ${r.patente}</span>
-      </div>
-      <div class="reserva-codigo-box">
-        <div class="reserva-codigo-label">CÓDIGO DE ACCESO</div>
-        <div class="reserva-codigo-num">${r.codigo}</div>
-        <div style="font-size:11px;color:${r.estado==='activo'?'var(--verde)':'var(--texto2)'};margin-top:6px;">
-          ${r.estado==='pagado'?'🔒 Se activa en el check-in presencial':'✅ Código activo — válido 24hs desde el check-in'}
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-// ===== ADMIN =====
-async function loginAdmin() {
-  const user = document.getElementById('admin-user').value;
-  const pass = document.getElementById('admin-pass').value;
-  if (user === 'admin' && pass === 'lomva2024') {
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-panel').style.display = 'block';
-    cargarAdmin();
-  } else {
-    toast('Usuario o contraseña incorrectos', 'rojo');
   }
 }
 
-async function cerrarAdmin() {
-  document.getElementById('admin-login').style.display = 'block';
-  document.getElementById('admin-panel').style.display = 'none';
-  document.getElementById('admin-user').value = '';
-  document.getElementById('admin-pass').value = '';
-}
 
-function cargarAdmin() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const hoyRes = reservas.filter(r => r.fecha === hoy);
-  const activos = reservas.filter(r => r.estado === 'activo').length;
-  const ingHoy = hoyRes.reduce((s,r) => s+r.servicio.precio, 0);
-  const ingTotal = reservas.reduce((s,r) => s+r.servicio.precio, 0);
-
-  renderServiciosAdmin();
-  document.getElementById('conf-tope').value = configAdmin.topePlazas;
-  document.getElementById('conf-tope-lav').value = configAdmin.topeLavadero;
-  document.getElementById('stats-admin').innerHTML = `
-    <div class="stat-card"><div class="stat-num">${hoyRes.length}</div><div class="stat-label">Reservas hoy</div></div>
-    <div class="stat-card verde"><div class="stat-num">${activos}</div><div class="stat-label">Códigos activos</div></div>
-    <div class="stat-card amarillo"><div class="stat-num">$${(ingHoy/1000).toFixed(0)}k</div><div class="stat-label">Ingresos hoy</div></div>
-    <div class="stat-card"><div class="stat-num">$${(ingTotal/1000).toFixed(0)}k</div><div class="stat-label">Total acumulado</div></div>
-  `;
-
-  const tbHoy = document.getElementById('admin-tabla-hoy');
-  tbHoy.innerHTML = hoyRes.length ? hoyRes.map(r => `
-    <tr>
-      <td class="negrita">${r.nombre}</td>
-      <td>${r.patente}</td>
-      <td>${r.servicio.nombre}</td>
-      <td><span class="badge ${r.estado==='activo'?'activo':'pendiente'}">${r.estado==='pagado'?'Esperando':r.estado==='activo'?'Activo':r.estado}</span></td>
-      <td style="font-size:16px;font-weight:700;color:var(--azul);letter-spacing:3px;">${r.codigo}</td>
-      <td><button class="btn-checkin" onclick="hacerCheckin('${r.id}')" ${r.estado!=='pagado'?'disabled':''}>${r.estado==='pagado'?'Check-in ✓':r.estado==='activo'?'Activo':'—'}</button></td>
-    </tr>
-  `).join('') : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--texto2);">Sin reservas para hoy</td></tr>';
-
-  const tbTodas = document.getElementById('admin-tabla-todas');
-  tbTodas.innerHTML = reservas.length ? [...reservas].reverse().map(r => `
-    <tr>
-      <td>${new Date(r.fecha+'T00:00:00').toLocaleDateString('es-AR')}</td>
-      <td class="negrita">${r.nombre}</td>
-      <td>${r.patente}</td>
-      <td>${r.servicio.nombre}</td>
-      <td style="font-weight:600;color:var(--azul);">$${r.servicio.precio.toLocaleString('es-AR')}</td>
-      <td><span class="badge ${r.estado==='activo'?'activo':r.estado==='vencido'?'vencido':'pendiente'}">${r.estado==='pagado'?'Esperando':r.estado}</span></td>
-    </tr>
-  `).join('') : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--texto2);">Sin reservas aún</td></tr>';
-}
-
-function hacerCheckin(id) {
-  const idx = reservas.findIndex(r => r.id === id);
-  if (idx === -1) return;
-  reservas[idx].estado = 'activo';
-  reservas[idx].fechaCheckin = new Date().toISOString();
-  reservas[idx].fechaVencimiento = new Date(Date.now() + 24*60*60*1000).toISOString();
-  localStorage.setItem('lomva_v2', JSON.stringify(reservas));
-  ['porton','banos','salon'].forEach(t => { const el = document.getElementById('tag-'+t); if(el) el.classList.add('activo'); });
-  toast('✅ Check-in realizado — código activo por 24hs', 'verde');
-  cargarAdmin();
-}
-
-// ===== CONSULTA ABONO =====
-function consultarAbono() {
-  const msg = encodeURIComponent('Hola! Me interesa el abono mensual de Lomva Parking. ¿Me podés dar más información?');
-  window.open('https://wa.me/5493413238566?text=' + msg, '_blank');
-}
-
-// ===== TOAST =====
-function toast(msg, tipo) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show ' + (tipo||'');
-  setTimeout(() => t.classList.remove('show'), 3200);
-}
-
-// Datos cargados desde Supabase
-</script>
-</body>
-</html>
