@@ -1302,7 +1302,9 @@ async function agregarServicio() {
 function renderServiciosPublico() {
   const grid = document.getElementById('srv-grid');
   if (!grid) return;
-  grid.innerHTML = serviciosAdmin.map(s => {
+  // Filtrar subservicios de lavadero y pulidos — se muestran dentro de la card expandible
+  const serviciosVisibles = serviciosAdmin.filter(s => !s.id.startsWith('lav_') && !s.id.startsWith('pul_'));
+  grid.innerHTML = serviciosVisibles.map(s => {
     if (s.activo) {
       return `
         <div class="srv-card" data-srv="${s.id}" data-precio="${s.precio}" data-nombre="${s.nombre}">
