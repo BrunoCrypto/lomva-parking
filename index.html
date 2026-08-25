@@ -403,6 +403,58 @@ nav {
   font-size:12px; font-weight:600; border:none; cursor:pointer; white-space:nowrap;
 }
 
+
+/* LAVADERO EXPANDIBLE */
+.lav-panel {
+  display:none;
+  margin-top:14px;
+  border-top:1px solid var(--borde);
+  padding-top:14px;
+}
+.lav-panel.show { display:block; }
+.lav-seccion-titulo {
+  font-size:11px; letter-spacing:1.5px; color:var(--texto2);
+  font-weight:600; margin-bottom:10px;
+}
+.lav-opciones { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.lav-opcion {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px; border-radius:8px; border:1.5px solid var(--borde);
+  cursor:pointer; transition:all 0.2s; background:var(--fondo);
+}
+.lav-opcion:hover { border-color:var(--azul2); background:var(--azul-light); }
+.lav-opcion.selected { border-color:var(--azul); background:var(--azul-light); }
+.lav-opcion-nombre { font-size:13px; color:var(--texto); font-weight:500; }
+.lav-opcion-precio { font-size:13px; color:var(--azul); font-weight:600; }
+.lav-adicionales { display:none; }
+.lav-adicionales.show { display:block; }
+.lav-adicional {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 14px; border-radius:8px; border:1.5px solid var(--borde);
+  cursor:pointer; transition:all 0.2s; background:var(--fondo);
+  margin-bottom:6px;
+}
+.lav-adicional:hover { border-color:var(--azul2); }
+.lav-adicional.selected { border-color:var(--verde); background:#f0fdf4; }
+.lav-adicional input[type="checkbox"] { accent-color:var(--verde); width:16px; height:16px; }
+.lav-total-box {
+  background:var(--azul); color:#fff; border-radius:8px;
+  padding:12px 16px; display:none;
+  justify-content:space-between; align-items:center;
+  margin-top:10px;
+}
+.lav-total-box.show { display:flex; }
+.lav-total-label { font-size:13px; opacity:0.85; }
+.lav-total-precio { font-size:18px; font-weight:700; }
+.lav-continuar {
+  width:100%; padding:12px; border-radius:8px;
+  background:var(--azul); color:#fff; font-size:14px; font-weight:600;
+  border:none; cursor:pointer; margin-top:10px; display:none;
+  transition:opacity 0.2s;
+}
+.lav-continuar:hover { opacity:0.85; }
+.lav-continuar.show { display:block; }
+
 /* FOOTER */
 footer {
   background:var(--azul); color:rgba(255,255,255,0.6);
@@ -517,13 +569,42 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
         <div class="srv-precio">$22.000 <span>/ noche</span></div>
       </div>
 
-      <div class="srv-card" data-srv="lavadero" data-precio="50000" data-nombre="Lavadero">
+      <div class="srv-card" id="card-lavadero" style="cursor:default;">
         <div class="srv-badge activo">Disponible</div>
-        <div class="srv-check">✓</div>
-        <div class="srv-icon">🚛</div>
-        <div class="srv-nombre">Lavadero</div>
-        <div class="srv-desc">Lavado de camión y semirremolque. Elegí el tipo de servicio al reservar.</div>
-        <div class="srv-precio">Desde $50.000 <span>/ lavado</span></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;cursor:pointer;" onclick="toggleLavadero()">
+          <div>
+            <div class="srv-icon">🚛</div>
+            <div class="srv-nombre">Lavadero</div>
+            <div class="srv-desc">Lavado de camión y semirremolque. Seleccioná el servicio.</div>
+            <div class="srv-precio" id="lav-precio-desde">Desde $50.000 <span>/ lavado</span></div>
+          </div>
+          <div id="lav-toggle-icon" style="font-size:20px;color:var(--azul2);margin-top:4px;transition:transform 0.2s;">▼</div>
+        </div>
+
+        <!-- PANEL DESPLEGABLE -->
+        <div class="lav-panel" id="lav-panel">
+          
+          <!-- TIPOS DE LAVADO -->
+          <div class="lav-seccion-titulo">TIPO DE LAVADO (obligatorio)</div>
+          <div class="lav-opciones" id="lav-opciones"></div>
+
+          <!-- PULIDOS ADICIONALES -->
+          <div class="lav-adicionales" id="lav-adicionales">
+            <div class="lav-seccion-titulo">PULIDOS ADICIONALES (opcional)</div>
+            <div id="lav-adicionales-lista"></div>
+          </div>
+
+          <!-- TOTAL -->
+          <div class="lav-total-box" id="lav-total-box">
+            <div class="lav-total-label">Total seleccionado</div>
+            <div class="lav-total-precio" id="lav-total-precio">$0</div>
+          </div>
+
+          <!-- CONTINUAR -->
+          <button class="lav-continuar" id="lav-continuar" onclick="continuarLavadero()">
+            Continuar con la reserva →
+          </button>
+        </div>
       </div>
 
       <div class="srv-card disabled">
@@ -1560,6 +1641,120 @@ async function procesarPago() {
 
 
 
+
+
+// ===== LAVADERO EXPANDIBLE =====
+let lavadoSeleccionado = null;
+let pulidosSeleccionados = [];
+
+function toggleLavadero() {
+  const panel = document.getElementById('lav-panel');
+  const icon = document.getElementById('lav-toggle-icon');
+  const card = document.getElementById('card-lavadero');
+  
+  const isOpen = panel.classList.contains('show');
+  
+  if (isOpen) {
+    panel.classList.remove('show');
+    icon.style.transform = 'rotate(0deg)';
+    card.classList.remove('selected');
+  } else {
+    panel.classList.add('show');
+    icon.style.transform = 'rotate(180deg)';
+    card.classList.add('selected');
+    renderLavaderoOpciones();
+  }
+}
+
+function renderLavaderoOpciones() {
+  const lavados = serviciosAdmin.filter(s => s.id.startsWith('lav_') && s.activo);
+  const pulidos = serviciosAdmin.filter(s => s.id.startsWith('pul_') && s.activo);
+  
+  // Precio mínimo para mostrar "desde $..."
+  const precioMin = lavados.length > 0 ? Math.min(...lavados.map(s => s.precio)) : 50000;
+  const precioDesde = document.getElementById('lav-precio-desde');
+  if (precioDesde) precioDesde.innerHTML = `Desde $${precioMin.toLocaleString('es-AR')} <span>/ lavado</span>`;
+  
+  // Render tipos de lavado
+  const cont = document.getElementById('lav-opciones');
+  cont.innerHTML = lavados.map(s => `
+    <div class="lav-opcion ${lavadoSeleccionado?.id === s.id ? 'selected' : ''}" 
+         onclick="seleccionarLavado('${s.id}')">
+      <span class="lav-opcion-nombre">${s.nombre}</span>
+      <span class="lav-opcion-precio">$${s.precio.toLocaleString('es-AR')}</span>
+    </div>
+  `).join('');
+  
+  // Render pulidos
+  const contPul = document.getElementById('lav-adicionales-lista');
+  contPul.innerHTML = pulidos.map(s => `
+    <div class="lav-adicional ${pulidosSeleccionados.includes(s.id) ? 'selected' : ''}"
+         onclick="togglePulido('${s.id}')">
+      <input type="checkbox" ${pulidosSeleccionados.includes(s.id) ? 'checked' : ''} onclick="event.stopPropagation()">
+      <span class="lav-opcion-nombre">${s.nombre}</span>
+      <span class="lav-opcion-precio">+$${s.precio.toLocaleString('es-AR')}</span>
+    </div>
+  `).join('');
+}
+
+function seleccionarLavado(id) {
+  lavadoSeleccionado = serviciosAdmin.find(s => s.id === id) || null;
+  
+  // Mostrar adicionales
+  document.getElementById('lav-adicionales').classList.add('show');
+  
+  actualizarTotalLavadero();
+  renderLavaderoOpciones();
+}
+
+function togglePulido(id) {
+  const idx = pulidosSeleccionados.indexOf(id);
+  if (idx >= 0) {
+    pulidosSeleccionados.splice(idx, 1);
+  } else {
+    pulidosSeleccionados.push(id);
+  }
+  actualizarTotalLavadero();
+  renderLavaderoOpciones();
+}
+
+function actualizarTotalLavadero() {
+  if (!lavadoSeleccionado) return;
+  
+  const totalPulidos = pulidosSeleccionados.reduce((sum, id) => {
+    const s = serviciosAdmin.find(s => s.id === id);
+    return sum + (s ? s.precio : 0);
+  }, 0);
+  
+  const total = lavadoSeleccionado.precio + totalPulidos;
+  
+  document.getElementById('lav-total-precio').textContent = '$' + total.toLocaleString('es-AR');
+  document.getElementById('lav-total-box').classList.add('show');
+  document.getElementById('lav-continuar').classList.add('show');
+}
+
+function continuarLavadero() {
+  if (!lavadoSeleccionado) { toast('Seleccioná el tipo de lavado', 'rojo'); return; }
+  
+  const pulidosObjs = pulidosSeleccionados.map(id => serviciosAdmin.find(s => s.id === id)).filter(Boolean);
+  const nombreCompleto = lavadoSeleccionado.nombre + (pulidosObjs.length > 0 ? ' + ' + pulidosObjs.map(s => s.nombre).join(' + ') : '');
+  const totalPulidos = pulidosObjs.reduce((sum, s) => sum + s.precio, 0);
+  const totalPrecio = lavadoSeleccionado.precio + totalPulidos;
+  
+  // Setear srvSel con el servicio completo
+  srvSel = {
+    id: 'lavadero',
+    nombre: nombreCompleto,
+    precio: totalPrecio
+  };
+  srvSubSel = srvSel;
+  
+  // Cerrar el panel
+  document.getElementById('lav-panel').classList.remove('show');
+  document.getElementById('lav-toggle-icon').style.transform = 'rotate(0deg)';
+  
+  irFormulario();
+}
 
 // ===== PAGO EN EFECTIVO =====
 function pagarEfectivo() {
