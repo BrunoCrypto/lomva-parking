@@ -1088,16 +1088,17 @@ async function guardarServicioIdx(i) {
   serviciosAdmin[i] = { ...serviciosAdmin[i], icon, precio, nombre, desc, unidad };
   
   // Guardar en Supabase
+  console.log('Guardando servicio', i, {icon, precio, nombre, desc, unidad});
   try {
-    await sbUpsert('servicios', [{
+    const result = await sbUpsert('servicios', [{
       id: serviciosAdmin[i].id,
       icon, nombre, descripcion: desc, precio, unidad,
       activo: serviciosAdmin[i].activo,
       fijo: serviciosAdmin[i].fijo,
       orden: i + 1
     }]);
+    console.log('Resultado Supabase:', result);
     toast('✅ Servicio actualizado', 'verde');
-    // Actualizar la vista pública sin recargar el admin
     renderServiciosPublico();
   } catch(e) {
     console.error('Error guardando:', e);
