@@ -534,12 +534,13 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
         <div class="srv-precio" style="color:var(--texto2);">—</div>
       </div>
 
-      <div class="srv-card disabled">
-        <div class="srv-badge pronto">Próximamente</div>
+      <div class="srv-card" data-srv="taller" data-precio="0" data-nombre="Taller refrigeración">
+        <div class="srv-badge activo">Disponible</div>
+        <div class="srv-check">✓</div>
         <div class="srv-icon">❄️</div>
         <div class="srv-nombre">Taller refrigeración</div>
-        <div class="srv-desc">Service Carrier y Thermo King con turno programado.</div>
-        <div class="srv-precio" style="color:var(--texto2);">—</div>
+        <div class="srv-desc">Service Carrier y Thermo King. Reservá tu turno y te contactamos para coordinar.</div>
+        <div class="srv-precio" style="color:var(--texto2);">Sin costo previo</div>
       </div>
 
       <div class="srv-card disabled">
@@ -576,8 +577,27 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
       <div class="form-titulo" id="form-titulo">Reservar</div>
       <div class="form-sub" id="form-sub">Completá tus datos para continuar</div>
 
+      <!-- SUBSERVICIOS (lavadero) -->
+      <div class="form-grupo" id="grupo-subservicio" style="display:none">
+        <label class="form-label">TIPO DE SERVICIO</label>
+        <select class="form-input" id="f-subservicio" onchange="actualizarSubservicio()">
+          <option value="">Seleccioná el tipo de lavado</option>
+        </select>
+      </div>
+
+      <!-- TIPO TALLER (solo informativo) -->
+      <div class="form-grupo" id="grupo-tipo-taller" style="display:none">
+        <label class="form-label">TIPO DE SERVICIO</label>
+        <select class="form-input" id="f-tipo-taller">
+          <option value="">Seleccioná el tipo</option>
+          <option value="emergencia">🚨 Emergencia</option>
+          <option value="service">🔧 Service</option>
+          <option value="programado">📅 Trabajo programado</option>
+        </select>
+      </div>
+
       <div class="form-grupo">
-        <label class="form-label">NOMBRE Y APELLIDO</label>
+        <label class="form-label">NOMBRE DEL CHOFER</label>
         <input type="text" class="form-input" id="f-nombre" placeholder="Juan Pérez">
       </div>
       <div class="form-grupo">
@@ -585,21 +605,42 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
         <input type="tel" class="form-input" id="f-cel" placeholder="341 555-1234">
       </div>
       <div class="form-grupo">
+        <label class="form-label">EMPRESA DE TRANSPORTE</label>
+        <input type="text" class="form-input" id="f-empresa" placeholder="Transportes SA">
+      </div>
+      <div class="form-grupo">
         <label class="form-label">PATENTE DEL CAMIÓN</label>
         <input type="text" class="form-input" id="f-patente" placeholder="AB 123 CD" style="text-transform:uppercase">
+      </div>
+      <div class="form-grupo">
+        <label class="form-label">TIPO DE CAMIÓN</label>
+        <select class="form-input" id="f-tipo-camion">
+          <option value="">Seleccioná el tipo</option>
+          <option value="rigido">Camión rígido</option>
+          <option value="semi">Camión + semirremolque</option>
+          <option value="balancin_5">Camión + balancín hasta 5m</option>
+          <option value="balancin_mas5">Camión + balancín más de 5m</option>
+        </select>
       </div>
       <div class="form-grupo">
         <label class="form-label">FECHA</label>
         <input type="date" class="form-input" id="f-fecha">
       </div>
       <div class="form-grupo" id="grupo-turno" style="display:none">
-        <label class="form-label">TURNO PREFERIDO</label>
+        <label class="form-label">TURNO</label>
         <select class="form-input" id="f-turno">
           <option value="">Seleccioná un turno</option>
-          <option>08:00 – 10:00</option>
-          <option>10:00 – 12:00</option>
-          <option>14:00 – 16:00</option>
-          <option>16:00 – 18:00</option>
+          <option>08:00 – 09:00</option>
+          <option>09:00 – 10:00</option>
+          <option>10:00 – 11:00</option>
+          <option>11:00 – 12:00</option>
+          <option>12:00 – 13:00</option>
+          <option>13:00 – 14:00</option>
+          <option>14:00 – 15:00</option>
+          <option>15:00 – 16:00</option>
+          <option>16:00 – 17:00</option>
+          <option>17:00 – 18:00</option>
+          <option>18:00 – 19:00</option>
         </select>
       </div>
 
@@ -624,11 +665,21 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
         </label>
       </div>
 
-      <button class="btn-mp" id="btn-pagar" onclick="procesarPago()" disabled>
-        <svg width="20" height="20" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-weight="700" fill="#009ee3">MP</text></svg>
-        Pagar con Mercado Pago
-      </button>
-      <button class="btn-secundario" onclick="irVista('home')">Cancelar</button>
+      <div id="botones-pago" style="display:none;">
+        <button class="btn-mp" id="btn-pagar" onclick="procesarPago()" disabled style="margin-bottom:10px;">
+          <svg width="20" height="20" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-weight="700" fill="#009ee3">MP</text></svg>
+          Pagar con Mercado Pago
+        </button>
+        <button class="btn-secundario" id="btn-efectivo" onclick="pagarEfectivo()" style="background:#25d366;color:#fff;border:none;margin-bottom:10px;">
+          💬 Coordinar pago en efectivo por WhatsApp
+        </button>
+      </div>
+      <div id="botones-pago-taller" style="display:none;">
+        <button class="btn-amarillo" id="btn-reservar-taller" onclick="reservarTaller()" disabled>
+          Solicitar turno
+        </button>
+      </div>
+      <button class="btn-secundario" onclick="irVista('home')" style="margin-top:8px;">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1225,7 +1276,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== ESTADO =====
 let srvSel = null;
+let srvSubSel = null;
 let reservas = [];
+
+const SUBSERVICIOS_LAVADERO = [{"id": "lav_ext", "nombre": "Camión exterior", "precio": 0}, {"id": "lav_comp", "nombre": "Camión completo (interior + exterior)", "precio": 0}, {"id": "lav_semi_ext", "nombre": "Camión + semirremolque exterior", "precio": 0}, {"id": "lav_semi_comp", "nombre": "Camión + semirremolque completo", "precio": 0}, {"id": "lav_bal_5", "nombre": "Camión + balancín hasta 5m", "precio": 0}, {"id": "lav_bal_mas5", "nombre": "Camión + balancín más de 5m", "precio": 0}, {"id": "lav_tanque", "nombre": "Pulido tanque de combustible", "precio": 0}, {"id": "lav_anticicl", "nombre": "Pulido anticiclistas", "precio": 0}, {"id": "lav_pulido", "nombre": "Pulido completo", "precio": 0}];
+
 
 // ===== NAVEGACIÓN =====
 function irVista(nombre) {
@@ -1253,26 +1308,93 @@ function selServicio(el) {
 // ===== IR AL FORMULARIO =====
 async function irFormulario() {
   if (!srvSel) return;
+  
+  const esTaller = srvSel.id === 'taller';
+  const esLavadero = srvSel.id === 'lavadero';
+  const esNoche = srvSel.id === 'noche';
+  
   document.getElementById('form-titulo').textContent = srvSel.nombre;
-  document.getElementById('form-sub').textContent = srvSel.id === 'lavadero' ? 'Elegí fecha y turno para tu lavado' : 'Completá tus datos para la reserva';
-  document.getElementById('grupo-turno').style.display = ['lavadero','gomeria','taller'].includes(srvSel.id) ? 'block' : 'none';
+  
+  if (esLavadero) {
+    document.getElementById('form-sub').textContent = 'Elegí el tipo de lavado y turno';
+  } else if (esTaller) {
+    document.getElementById('form-sub').textContent = 'Completá tus datos y te contactamos para coordinar';
+  } else {
+    document.getElementById('form-sub').textContent = 'Completá tus datos para la reserva';
+  }
+  
+  // Subservicios lavadero
+  const grupoSub = document.getElementById('grupo-subservicio');
+  if (esLavadero) {
+    grupoSub.style.display = 'block';
+    const sel = document.getElementById('f-subservicio');
+    sel.innerHTML = '<option value="">Seleccioná el tipo de lavado</option>';
+    SUBSERVICIOS_LAVADERO.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.nombre + (s.precio > 0 ? ' — $' + s.precio.toLocaleString('es-AR') : '');
+      sel.appendChild(opt);
+    });
+    srvSubSel = null;
+  } else {
+    grupoSub.style.display = 'none';
+  }
+  
+  // Tipo taller
+  document.getElementById('grupo-tipo-taller').style.display = esTaller ? 'block' : 'none';
+  
+  // Turnos
+  document.getElementById('grupo-turno').style.display = (esLavadero || esTaller) ? 'block' : 'none';
+  
+  // Botones de pago
+  document.getElementById('botones-pago').style.display = esTaller ? 'none' : 'block';
+  document.getElementById('botones-pago-taller').style.display = esTaller ? 'block' : 'none';
+  
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('f-fecha').min = hoy;
   document.getElementById('f-fecha').value = hoy;
   document.getElementById('check-terminos').checked = false;
   document.getElementById('btn-pagar').disabled = true;
+  
   actualizarResumen();
   irVista('form');
+}
+
+function actualizarSubservicio() {
+  const sel = document.getElementById('f-subservicio');
+  const subId = sel.value;
+  if (!subId) { srvSubSel = null; actualizarResumen(); return; }
+  srvSubSel = SUBSERVICIOS_LAVADERO.find(s => s.id === subId);
+  actualizarResumen();
 }
 
 function actualizarResumen() {
   if (!srvSel) return;
   const fecha = document.getElementById('f-fecha').value;
   const fechaFmt = fecha ? new Date(fecha+'T00:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}) : '—';
-  document.getElementById('res-srv').textContent = srvSel.nombre;
+  
+  // Precio: si es lavadero con subservicio, usar precio del subservicio
+  const esTaller = srvSel.id === 'taller';
+  const esLavadero = srvSel.id === 'lavadero';
+  
+  let nombreMostrar = srvSel.nombre;
+  let precioMostrar = srvSel.precio;
+  
+  if (esLavadero && srvSubSel) {
+    nombreMostrar = srvSubSel.nombre;
+    precioMostrar = srvSubSel.precio;
+  }
+  
+  document.getElementById('res-srv').textContent = nombreMostrar;
   document.getElementById('res-fecha').textContent = fechaFmt;
-  document.getElementById('res-precio').textContent = '$' + srvSel.precio.toLocaleString('es-AR');
-  document.getElementById('res-total').textContent = '$' + srvSel.precio.toLocaleString('es-AR');
+  
+  if (esTaller) {
+    document.getElementById('res-precio').textContent = 'A coordinar';
+    document.getElementById('res-total').textContent = 'Sin costo previo';
+  } else {
+    document.getElementById('res-precio').textContent = precioMostrar > 0 ? '$' + precioMostrar.toLocaleString('es-AR') : 'A confirmar';
+    document.getElementById('res-total').textContent = precioMostrar > 0 ? '$' + precioMostrar.toLocaleString('es-AR') : 'A confirmar';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1283,7 +1405,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== TOGGLE PAGO =====
 function togglePago() {
   const ok = document.getElementById('check-terminos').checked;
-  document.getElementById('btn-pagar').disabled = !ok;
+  const btnPagar = document.getElementById('btn-pagar');
+  const btnTaller = document.getElementById('btn-reservar-taller');
+  if (btnPagar) btnPagar.disabled = !ok;
+  if (btnTaller) btnTaller.disabled = !ok;
 }
 
 // ===== PAGO =====
@@ -1293,6 +1418,8 @@ async function procesarPago() {
   const patente = document.getElementById('f-patente').value.trim().toUpperCase();
   const fecha = document.getElementById('f-fecha').value;
   if (!nombre || !cel || !patente || !fecha) { toast('Completá todos los campos', 'rojo'); return; }
+  // Validar subservicio en lavadero
+  if (srvSel.id === 'lavadero' && !srvSubSel) { toast('Seleccioná el tipo de lavado', 'rojo'); return; }
 
   const btn = document.getElementById('btn-pagar');
   btn.disabled = true;
@@ -1302,10 +1429,19 @@ async function procesarPago() {
     // 1. Guardar reserva en Supabase con estado pendiente
     const reservaId = 'RES-' + Date.now();
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    const empresa = document.getElementById('f-empresa')?.value?.trim() || '';
+    const tipoCamion = document.getElementById('f-tipo-camion')?.value || '';
+    const turno = document.getElementById('f-turno')?.value || '';
+    
+    // Si es lavadero con subservicio, usar nombre y precio del subservicio
+    const srvNombre = (srvSel.id === 'lavadero' && srvSubSel) ? srvSubSel.nombre : srvSel.nombre;
+    const srvPrecio = (srvSel.id === 'lavadero' && srvSubSel) ? srvSubSel.precio : srvSel.precio;
 
     await sbPost('reservas', {
       id: reservaId, nombre, cel, patente, fecha,
-      servicio_id: srvSel.id, servicio_nombre: srvSel.nombre, servicio_precio: srvSel.precio,
+      servicio_id: srvSel.id, 
+      servicio_nombre: srvNombre, 
+      servicio_precio: srvPrecio,
       codigo: codigo, estado: 'pendiente_pago', fecha_pago: new Date().toISOString()
     });
 
@@ -1346,6 +1482,110 @@ async function procesarPago() {
 }
 
 
+
+
+// ===== PAGO EN EFECTIVO =====
+function pagarEfectivo() {
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const cel = document.getElementById('f-cel').value.trim();
+  const patente = document.getElementById('f-patente').value.trim().toUpperCase();
+  const empresa = document.getElementById('f-empresa').value.trim();
+  const fecha = document.getElementById('f-fecha').value;
+  const turno = document.getElementById('f-turno').value;
+  const tipoCamion = document.getElementById('f-tipo-camion').value;
+  
+  if (!nombre || !cel || !patente || !fecha) { toast('Completá todos los campos', 'rojo'); return; }
+  
+  const subNombre = srvSubSel ? srvSubSel.nombre : srvSel.nombre;
+  const msg = encodeURIComponent(
+    `Hola! Quiero reservar en Lomva Parking.
+
+` +
+    `*Servicio:* ${subNombre}
+` +
+    `*Chofer:* ${nombre}
+` +
+    `*Empresa:* ${empresa || 'No especificada'}
+` +
+    `*Camión:* ${tipoCamion || 'No especificado'}
+` +
+    `*Patente:* ${patente}
+` +
+    `*Fecha:* ${fecha}
+` +
+    `*Turno:* ${turno || 'A coordinar'}
+` +
+    `*Celular:* ${cel}
+
+` +
+    `Quiero coordinar el pago en efectivo.`
+  );
+  window.open('https://wa.me/5493413238566?text=' + msg, '_blank');
+}
+
+// ===== RESERVAR TALLER (sin pago) =====
+async function reservarTaller() {
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const cel = document.getElementById('f-cel').value.trim();
+  const patente = document.getElementById('f-patente').value.trim().toUpperCase();
+  const empresa = document.getElementById('f-empresa').value.trim();
+  const fecha = document.getElementById('f-fecha').value;
+  const turno = document.getElementById('f-turno').value;
+  const tipoCamion = document.getElementById('f-tipo-camion').value;
+  const tipoTaller = document.getElementById('f-tipo-taller').value;
+  
+  if (!nombre || !cel || !patente || !fecha || !tipoTaller) { 
+    toast('Completá todos los campos', 'rojo'); return; 
+  }
+  
+  const btn = document.getElementById('btn-reservar-taller');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  
+  try {
+    const reservaId = 'TALL-' + Date.now();
+    await sbPost('reservas', {
+      id: reservaId, nombre, cel, patente, fecha,
+      servicio_id: 'taller',
+      servicio_nombre: 'Taller refrigeración — ' + tipoTaller,
+      servicio_precio: 0,
+      codigo: '000000',
+      estado: 'taller_pendiente',
+      fecha_pago: new Date().toISOString()
+    });
+    
+    // Mandar WhatsApp al encargado
+    const msg = encodeURIComponent(
+      `Nueva reserva TALLER REFRIGERACIÓN
+
+` +
+      `*Tipo:* ${tipoTaller}
+` +
+      `*Chofer:* ${nombre}
+` +
+      `*Empresa:* ${empresa || 'No especificada'}
+` +
+      `*Camión:* ${tipoCamion || 'No especificado'}
+` +
+      `*Patente:* ${patente}
+` +
+      `*Fecha:* ${fecha}
+` +
+      `*Turno:* ${turno || 'A coordinar'}
+` +
+      `*Celular:* ${cel}`
+    );
+    window.open('https://wa.me/5493413238566?text=' + msg, '_blank');
+    
+    toast('✅ Turno solicitado. Te contactamos para confirmar.', 'verde');
+    setTimeout(() => irVista('home'), 2000);
+    
+  } catch(e) {
+    toast('Error al enviar la solicitud', 'rojo');
+    btn.disabled = false;
+    btn.textContent = 'Solicitar turno';
+  }
+}
 
 // ===== ADMIN =====
 async function cargarAdmin() {
