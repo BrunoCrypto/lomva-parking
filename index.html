@@ -517,13 +517,13 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
         <div class="srv-precio">$22.000 <span>/ noche</span></div>
       </div>
 
-      <div class="srv-card" data-srv="lavadero" data-precio="55000" data-nombre="Lavadero de camión">
+      <div class="srv-card" data-srv="lavadero" data-precio="50000" data-nombre="Lavadero">
         <div class="srv-badge activo">Disponible</div>
         <div class="srv-check">✓</div>
         <div class="srv-icon">🚛</div>
         <div class="srv-nombre">Lavadero</div>
-        <div class="srv-desc">Lavado completo camión + semirremolque. Elegí un turno al reservar.</div>
-        <div class="srv-precio">$55.000 <span>/ lavado</span></div>
+        <div class="srv-desc">Lavado de camión y semirremolque. Elegí el tipo de servicio al reservar.</div>
+        <div class="srv-precio">Desde $50.000 <span>/ lavado</span></div>
       </div>
 
       <div class="srv-card disabled">
@@ -578,11 +578,33 @@ footer a { color:rgba(255,255,255,0.8); text-decoration:none; }
       <div class="form-sub" id="form-sub">Completá tus datos para continuar</div>
 
       <!-- SUBSERVICIOS (lavadero) -->
-      <div class="form-grupo" id="grupo-subservicio" style="display:none">
-        <label class="form-label">TIPO DE SERVICIO</label>
-        <select class="form-input" id="f-subservicio" onchange="actualizarSubservicio()">
-          <option value="">Seleccioná el tipo de lavado</option>
-        </select>
+      <div id="grupo-lavadero" style="display:none">
+        <div class="form-grupo">
+          <label class="form-label">TIPO DE LAVADO</label>
+          <select class="form-input" id="f-subservicio" onchange="actualizarSubservicio()">
+            <option value="">Seleccioná el tipo de lavado</option>
+          </select>
+        </div>
+        <div class="form-grupo">
+          <label class="form-label">PULIDO ADICIONAL <span style="color:var(--texto2);font-weight:300;">(opcional)</span></label>
+          <select class="form-input" id="f-pulido" onchange="actualizarSubservicio()">
+            <option value="">Sin pulido adicional</option>
+          </select>
+        </div>
+        <div id="precio-lavadero-box" style="background:var(--azul-light);border:1.5px solid #c5d8f0;border-radius:8px;padding:12px 16px;margin-bottom:8px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span style="color:var(--texto2);" id="lav-detalle-lavado">—</span>
+            <span style="color:var(--azul);font-weight:600;" id="lav-precio-lavado">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;" id="lav-fila-pulido" style="display:none">
+            <span style="color:var(--texto2);" id="lav-detalle-pulido">—</span>
+            <span style="color:var(--azul);font-weight:600;" id="lav-precio-pulido">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;border-top:1px solid #c5d8f0;padding-top:8px;margin-top:8px;">
+            <span>Total</span>
+            <span style="color:var(--azul);" id="lav-total">—</span>
+          </div>
+        </div>
       </div>
 
       <!-- TIPO TALLER (solo informativo) -->
@@ -1324,20 +1346,36 @@ async function irFormulario() {
   }
   
   // Subservicios lavadero
-  const grupoSub = document.getElementById('grupo-subservicio');
+  const grupoLav = document.getElementById('grupo-lavadero');
   if (esLavadero) {
-    grupoSub.style.display = 'block';
-    const sel = document.getElementById('f-subservicio');
-    sel.innerHTML = '<option value="">Seleccioná el tipo de lavado</option>';
-    SUBSERVICIOS_LAVADERO.forEach(s => {
+    grupoLav.style.display = 'block';
+    // Llenar dropdown de lavados (ids que empiezan con lav_)
+    const lavados = serviciosAdmin.filter(s => s.id.startsWith('lav_'));
+    const pulidos = serviciosAdmin.filter(s => s.id.startsWith('pul_'));
+    
+    const selLav = document.getElementById('f-subservicio');
+    selLav.innerHTML = '<option value="">Seleccioná el tipo de lavado</option>';
+    lavados.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id;
+      opt.dataset.precio = s.precio;
       opt.textContent = s.nombre + (s.precio > 0 ? ' — $' + s.precio.toLocaleString('es-AR') : '');
-      sel.appendChild(opt);
+      selLav.appendChild(opt);
     });
+    
+    const selPul = document.getElementById('f-pulido');
+    selPul.innerHTML = '<option value="">Sin pulido adicional</option>';
+    pulidos.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.dataset.precio = s.precio;
+      opt.textContent = s.nombre + (s.precio > 0 ? ' — $' + s.precio.toLocaleString('es-AR') : '');
+      selPul.appendChild(opt);
+    });
+    
     srvSubSel = null;
   } else {
-    grupoSub.style.display = 'none';
+    grupoLav.style.display = 'none';
   }
   
   // Tipo taller
@@ -1361,10 +1399,49 @@ async function irFormulario() {
 }
 
 function actualizarSubservicio() {
-  const sel = document.getElementById('f-subservicio');
-  const subId = sel.value;
-  if (!subId) { srvSubSel = null; actualizarResumen(); return; }
-  srvSubSel = SUBSERVICIOS_LAVADERO.find(s => s.id === subId);
+  const selLav = document.getElementById('f-subservicio');
+  const selPul = document.getElementById('f-pulido');
+  
+  const lavId = selLav?.value;
+  const pulId = selPul?.value;
+  
+  const lavado = lavId ? serviciosAdmin.find(s => s.id === lavId) : null;
+  const pulido = pulId ? serviciosAdmin.find(s => s.id === pulId) : null;
+  
+  srvSubSel = lavado || null;
+  
+  // Actualizar caja de precios
+  const box = document.getElementById('precio-lavadero-box');
+  if (!box) { actualizarResumen(); return; }
+  
+  if (lavado) {
+    box.style.display = 'block';
+    document.getElementById('lav-detalle-lavado').textContent = lavado.nombre;
+    document.getElementById('lav-precio-lavado').textContent = '$' + lavado.precio.toLocaleString('es-AR');
+    
+    const filaPulido = document.getElementById('lav-fila-pulido');
+    if (pulido) {
+      filaPulido.style.display = 'flex';
+      document.getElementById('lav-detalle-pulido').textContent = pulido.nombre;
+      document.getElementById('lav-precio-pulido').textContent = '+$' + pulido.precio.toLocaleString('es-AR');
+    } else {
+      filaPulido.style.display = 'none';
+    }
+    
+    const total = lavado.precio + (pulido ? pulido.precio : 0);
+    document.getElementById('lav-total').textContent = '$' + total.toLocaleString('es-AR');
+    
+    // Guardar el pulido en srvSubSel como objeto combinado
+    srvSubSel = {
+      id: lavId + (pulId ? '+' + pulId : ''),
+      nombre: lavado.nombre + (pulido ? ' + ' + pulido.nombre : ''),
+      precio: total
+    };
+  } else {
+    box.style.display = 'none';
+    srvSubSel = null;
+  }
+  
   actualizarResumen();
 }
 
