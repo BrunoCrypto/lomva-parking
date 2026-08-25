@@ -1065,6 +1065,18 @@ function renderServiciosAdmin() {
 }
 
 async function guardarServicioIdx(i) {
+  // Leer valores directamente de los inputs del card
+  const cards = document.querySelectorAll('.admin-srv-card');
+  const card = cards[i];
+  if (card) {
+    const inputs = card.querySelectorAll('.admin-srv-input');
+    // orden: icon, precio, nombre, descripcion, unidad
+    if (inputs[0]) serviciosAdmin[i].icon = inputs[0].value;
+    if (inputs[1]) serviciosAdmin[i].precio = parseInt(inputs[1].value) || 0;
+    if (inputs[2]) serviciosAdmin[i].nombre = inputs[2].value;
+    if (inputs[3]) serviciosAdmin[i].desc = inputs[3].value;
+    if (inputs[4]) serviciosAdmin[i].unidad = inputs[4].value;
+  }
   const s = serviciosAdmin[i];
   await sbUpsert('servicios', [{
     id: s.id, icon: s.icon, nombre: s.nombre, descripcion: s.desc,
