@@ -1020,13 +1020,13 @@ function renderServiciosAdmin() {
   const grid = document.getElementById('admin-srv-grid');
   if (!grid) return;
   grid.innerHTML = serviciosAdmin.map((s, i) => `
-    <div class="admin-srv-card">
+    <div class="admin-srv-card" data-idx="${i}">
       <div class="admin-srv-card-header">
         <div class="admin-srv-card-nombre">${s.icon} ${s.nombre}</div>
         <div class="toggle-wrap">
           <span class="toggle-label">${s.activo ? '<span style="color:var(--verde);font-weight:600;">Activo</span>' : 'Inactivo'}</span>
           <label class="toggle">
-            <input type="checkbox" ${s.activo ? 'checked' : ''} onchange="toggleServicio(${i})">
+            <input type="checkbox" ${s.activo ? 'checked' : ''} data-action="toggle" data-idx="${i}">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -1034,34 +1034,46 @@ function renderServiciosAdmin() {
       <div class="admin-srv-row">
         <div class="admin-srv-field">
           <label>ÍCONO</label>
-          <input type="text" class="admin-srv-input" value="${s.icon}" maxlength="2"
-            onchange="serviciosAdmin[${i}].icon=this.value">
+          <input type="text" class="admin-srv-input srv-icon-input" value="${s.icon}" maxlength="2">
         </div>
         <div class="admin-srv-field">
           <label>PRECIO ($)</label>
-          <input type="number" class="admin-srv-input" value="${s.precio}"
-            onchange="serviciosAdmin[${i}].precio=parseInt(this.value)||0">
+          <input type="number" class="admin-srv-input srv-precio-input" value="${s.precio}">
         </div>
       </div>
       <div class="admin-srv-field">
         <label>NOMBRE</label>
-        <input type="text" class="admin-srv-input" value="${s.nombre}"
-          onchange="serviciosAdmin[${i}].nombre=this.value">
+        <input type="text" class="admin-srv-input srv-nombre-input" value="${s.nombre}">
       </div>
       <div class="admin-srv-field">
         <label>DESCRIPCIÓN</label>
-        <input type="text" class="admin-srv-input" value="${s.desc}"
-          onchange="serviciosAdmin[${i}].desc=this.value">
+        <input type="text" class="admin-srv-input srv-desc-input" value="${s.desc}">
       </div>
       <div class="admin-srv-field">
         <label>UNIDAD</label>
-        <input type="text" class="admin-srv-input" value="${s.unidad}"
-          onchange="serviciosAdmin[${i}].unidad=this.value">
+        <input type="text" class="admin-srv-input srv-unidad-input" value="${s.unidad}">
       </div>
-      <button class="btn-guardar-srv" onclick="guardarServicioIdx(${i})">Guardar cambios</button>
-      ${!s.fijo ? `<button class="btn-eliminar-srv" onclick="eliminarServicio(${i})">Eliminar servicio</button>` : ''}
+      <button class="btn-guardar-srv" data-action="guardar" data-idx="${i}">Guardar cambios</button>
+      ${!s.fijo ? `<button class="btn-eliminar-srv" data-action="eliminar" data-idx="${i}">Eliminar servicio</button>` : ''}
     </div>
   `).join('');
+
+  // Event delegation para todos los botones y checkboxes del grid
+  grid.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    const action = btn.dataset.action;
+    if (action === 'guardar') await guardarServicioIdx(idx);
+    if (action === 'eliminar') await eliminarServicio(idx);
+  });
+
+  grid.addEventListener('change', async (e) => {
+    const el = e.target.closest('[data-action="toggle"]');
+    if (!el) return;
+    const idx = parseInt(el.dataset.idx);
+    await toggleServicio(idx);
+  });
 }
 
 async function guardarServicioIdx(i) {
