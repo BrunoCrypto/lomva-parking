@@ -1019,14 +1019,19 @@ async function guardarConfig() {
 function renderServiciosAdmin() {
   const grid = document.getElementById('admin-srv-grid');
   if (!grid) return;
-  grid.innerHTML = serviciosAdmin.map((s, i) => `
-    <div class="admin-srv-card" data-idx="${i}">
+  
+  grid.innerHTML = '';
+  
+  serviciosAdmin.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'admin-srv-card';
+    card.innerHTML = `
       <div class="admin-srv-card-header">
         <div class="admin-srv-card-nombre">${s.icon} ${s.nombre}</div>
         <div class="toggle-wrap">
-          <span class="toggle-label">${s.activo ? '<span style="color:var(--verde);font-weight:600;">Activo</span>' : 'Inactivo'}</span>
+          <span class="toggle-label" id="toggle-label-${i}">${s.activo ? '<span style="color:var(--verde);font-weight:600;">Activo</span>' : 'Inactivo'}</span>
           <label class="toggle">
-            <input type="checkbox" ${s.activo ? 'checked' : ''} data-action="toggle" data-idx="${i}">
+            <input type="checkbox" id="toggle-${i}" ${s.activo ? 'checked' : ''}>
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -1034,69 +1039,72 @@ function renderServiciosAdmin() {
       <div class="admin-srv-row">
         <div class="admin-srv-field">
           <label>ÍCONO</label>
-          <input type="text" class="admin-srv-input srv-icon-input" value="${s.icon}" maxlength="2">
+          <input type="text" class="admin-srv-input" id="icon-${i}" value="${s.icon}" maxlength="2">
         </div>
         <div class="admin-srv-field">
           <label>PRECIO ($)</label>
-          <input type="number" class="admin-srv-input srv-precio-input" value="${s.precio}">
+          <input type="number" class="admin-srv-input" id="precio-${i}" value="${s.precio}">
         </div>
       </div>
       <div class="admin-srv-field">
         <label>NOMBRE</label>
-        <input type="text" class="admin-srv-input srv-nombre-input" value="${s.nombre}">
+        <input type="text" class="admin-srv-input" id="nombre-${i}" value="${s.nombre}">
       </div>
       <div class="admin-srv-field">
         <label>DESCRIPCIÓN</label>
-        <input type="text" class="admin-srv-input srv-desc-input" value="${s.desc}">
+        <input type="text" class="admin-srv-input" id="desc-${i}" value="${s.desc}">
       </div>
       <div class="admin-srv-field">
         <label>UNIDAD</label>
-        <input type="text" class="admin-srv-input srv-unidad-input" value="${s.unidad}">
+        <input type="text" class="admin-srv-input" id="unidad-${i}" value="${s.unidad}">
       </div>
-      <button class="btn-guardar-srv" data-action="guardar" data-idx="${i}">Guardar cambios</button>
-      ${!s.fijo ? `<button class="btn-eliminar-srv" data-action="eliminar" data-idx="${i}">Eliminar servicio</button>` : ''}
-    </div>
-  `).join('');
-
-  // Event delegation para todos los botones y checkboxes del grid
-  grid.addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const idx = parseInt(btn.dataset.idx);
-    const action = btn.dataset.action;
-    if (action === 'guardar') await guardarServicioIdx(idx);
-    if (action === 'eliminar') await eliminarServicio(idx);
-  });
-
-  grid.addEventListener('change', async (e) => {
-    const el = e.target.closest('[data-action="toggle"]');
-    if (!el) return;
-    const idx = parseInt(el.dataset.idx);
-    await toggleServicio(idx);
+      <button class="btn-guardar-srv" id="btn-guardar-${i}">Guardar cambios</button>
+      ${!s.fijo ? `<button class="btn-eliminar-srv" id="btn-eliminar-${i}">Eliminar servicio</button>` : ''}
+    `;
+    grid.appendChild(card);
+    
+    // Agregar event listeners directamente al elemento recién creado
+    document.getElementById('btn-guardar-' + i).addEventListener('click', () => guardarServicioIdx(i));
+    
+    document.getElementById('toggle-' + i).addEventListener('change', () => toggleServicio(i));
+    
+    if (!s.fijo) {
+      const btnElim = document.getElementById('btn-eliminar-' + i);
+      if (btnElim) btnElim.addEventListener('click', () => eliminarServicio(i));
+    }
   });
 }
+
 
 async function guardarServicioIdx(i) {
-  // Leer valores directamente de los inputs del card
-  const cards = document.querySelectorAll('.admin-srv-card');
-  const card = cards[i];
-  if (card) {
-    const inputs = card.querySelectorAll('.admin-srv-input');
-    // orden: icon, precio, nombre, descripcion, unidad
-    if (inputs[0]) serviciosAdmin[i].icon = inputs[0].value;
-    if (inputs[1]) serviciosAdmin[i].precio = parseInt(inputs[1].value) || 0;
-    if (inputs[2]) serviciosAdmin[i].nombre = inputs[2].value;
-    if (inputs[3]) serviciosAdmin[i].desc = inputs[3].value;
-    if (inputs[4]) serviciosAdmin[i].unidad = inputs[4].value;
+  // Leer valores por ID — 100% confiable
+  const icon = document.getElementById('icon-' + i)?.value || serviciosAdmin[i].icon;
+  const precio = parseInt(document.getElementById('precio-' + i)?.value) || 0;
+  const nombre = document.getElementById('nombre-' + i)?.value || serviciosAdmin[i].nombre;
+  const desc = document.getElementById('desc-' + i)?.value || serviciosAdmin[i].desc;
+  const unidad = document.getElementById('unidad-' + i)?.value || serviciosAdmin[i].unidad;
+  
+  // Actualizar el array local
+  serviciosAdmin[i] = { ...serviciosAdmin[i], icon, precio, nombre, desc, unidad };
+  
+  // Guardar en Supabase
+  try {
+    await sbUpsert('servicios', [{
+      id: serviciosAdmin[i].id,
+      icon, nombre, descripcion: desc, precio, unidad,
+      activo: serviciosAdmin[i].activo,
+      fijo: serviciosAdmin[i].fijo,
+      orden: i + 1
+    }]);
+    toast('✅ Servicio actualizado', 'verde');
+    // Actualizar la vista pública sin recargar el admin
+    renderServiciosPublico();
+  } catch(e) {
+    console.error('Error guardando:', e);
+    toast('Error al guardar', 'rojo');
   }
-  const s = serviciosAdmin[i];
-  await sbUpsert('servicios', [{
-    id: s.id, icon: s.icon, nombre: s.nombre, descripcion: s.desc,
-    precio: s.precio, unidad: s.unidad, activo: s.activo, fijo: s.fijo, orden: i+1
-  }]);
-  await cargarServicios();
-  toast('✅ Servicio actualizado', 'verde');
 }
+
 
 async function toggleServicio(i) {
   serviciosAdmin[i].activo = !serviciosAdmin[i].activo;
