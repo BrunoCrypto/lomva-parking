@@ -1235,6 +1235,10 @@ function irVista(nombre) {
   const idx = { home:0, 'mis-reservas':1, admin:2 };
   if (idx[nombre] !== undefined) document.querySelectorAll('.nav-tab')[idx[nombre]].classList.add('active');
   window.scrollTo(0, 0);
+  // Recargar servicios cuando se va a home — así siempre muestra datos frescos
+  if (nombre === 'home') {
+    renderServiciosPublico();
+  }
 }
 
 // ===== SELECCIÓN SERVICIO =====
