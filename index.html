@@ -1605,6 +1605,19 @@ async function procesarPago() {
       codigo: codigo, estado: 'pendiente_pago', fecha_pago: new Date().toISOString()
     });
 
+    // Notificar por WhatsApp
+    fetch('/api/notify-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre, cel, patente, fecha,
+        servicio: srvNombre,
+        turno: turno || '',
+        empresa: empresa || '',
+        codigo
+      })
+    }).catch(e => console.log('WA notify error:', e));
+
     // 2. Crear preferencia en Mercado Pago
     const mpRes = await fetch('/api/create-preference', {
       method: 'POST',
